@@ -1,0 +1,191 @@
+<wxs module="fmt" src="../../utils/fmt.wxs" />
+<view class="container">
+  <!-- 品牌+结果 合并头部 -->
+  <view class="result-header">
+    <view class="brand-logo-clip">
+      <image class="brand-banner" src="/assets/images/logo.png" mode="widthFix" />
+    </view>
+    <view class="result-header-body">
+      <view class="result-header-title">测算结果</view>
+      <view class="result-header-city">{{city}} · {{businessType}}</view>
+    </view>
+  </view>
+
+  <!-- 核心指标卡片 -->
+  <view class="metrics-card">
+    <view class="metric-item">
+      <view class="metric-icon-wrap icon-payback">⏱</view>
+      <view class="metric-value value-payback {{paybackMonths > 0 ? '' : 'metric-negative'}}">
+        {{paybackMonths > 0 ? paybackMonths : '无法回收'}}
+      </view>
+      <view class="metric-unit" wx:if="{{paybackMonths > 0}}">个月</view>
+      <view class="metric-label">投资回收期</view>
+    </view>
+    
+    <view class="metric-divider"></view>
+    
+    <view class="metric-item">
+      <view class="metric-icon-wrap icon-roi">📈</view>
+      <view class="metric-value value-roi {{roi > 0 ? '' : 'metric-negative'}}">{{roiDisplay}}</view>
+      <view class="metric-unit">%</view>
+      <view class="metric-label">年投资回报率ROI</view>
+    </view>
+    
+    <view class="metric-divider"></view>
+    
+    <view class="metric-item">
+      <view class="metric-icon-wrap icon-profit">💰</view>
+      <view class="metric-value value-profit {{annualProfitRate > 0 ? '' : 'metric-negative'}}">{{profitRateDisplay}}</view>
+      <view class="metric-unit">%</view>
+      <view class="metric-label">年现金利润率</view>
+    </view>
+  </view>
+
+  <!-- 详细数据 -->
+  <view class="card">
+    <view class="card-title">收支明细</view>
+    
+    <view class="detail-row">
+      <text class="detail-label">初始投资额</text>
+      <text class="detail-value">{{initialInvestmentDisplay}} 万元</text>
+    </view>
+    <view class="detail-row">
+      <text class="detail-label">年营收</text>
+      <text class="detail-value">{{annualRevenueDisplay}} 万元</text>
+    </view>
+    <view class="detail-row">
+      <text class="detail-label">年度总成本</text>
+      <text class="detail-value cost">{{annualCostDisplay}} 万元</text>
+    </view>
+    <view class="detail-row" wx:if="{{modelFeeDisplay > 0}}">
+      <text class="detail-label">经营模式附加费用</text>
+      <text class="detail-value cost">{{fmt.toFixed2(modelFeeDisplay)}} 万元</text>
+    </view>
+    <view class="detail-row highlight">
+      <text class="detail-label">年现金利润额</text>
+      <text class="detail-value {{annualProfit >= 0 ? 'profit' : 'loss'}}">{{annualProfitDisplay}} 万元</text>
+    </view>
+  </view>
+
+  <!-- 成本结构 -->
+  <view class="card">
+    <view class="card-title">成本费用税费结构</view>
+    
+    <view class="cost-bar-group">
+      <view class="cost-bar-item" wx:for="{{costBreakdown}}" wx:key="name">
+        <view class="cost-bar-header">
+          <text class="cost-bar-name">{{item.name}}</text>
+          <text class="cost-bar-percent">{{item.percent}}%</text>
+        </view>
+        <view class="cost-bar-track">
+          <view class="cost-bar-fill" style="width: {{item.barWidth}}%; background: {{item.color}}"></view>
+        </view>
+      </view>
+    </view>
+
+    <view class="cost-total-row">
+      <text class="cost-total-label">合计</text>
+      <text class="cost-total-value">{{totalCostRateDisplay}}%</text>
+    </view>
+  </view>
+
+  <!-- 投资建议 -->
+  <view class="card">
+    <view class="card-title">投资评估</view>
+    <view class="assessment">
+      <view class="assessment-icon {{assessmentLevel}}">{{assessmentIcon}}</view>
+      <view class="assessment-content">
+        <view class="assessment-title">{{assessmentTitle}}</view>
+        <view class="assessment-desc">{{assessmentDesc}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作按钮 + 声明 -->
+  <view class="btn-wrapper">
+    <button class="btn-secondary" bindtap="onBack">重新测算</button>
+    <view class="btn-disclaimer">声明：现金利润未考虑所得税，测算结果仅供参考，不构成投资建议，实际经营受多种因素影响。</view>
+  </view>
+
+  <!-- 意见反馈 -->
+  <view class="feedback-card {{feedbackExpanded ? 'feedback-expanded' : ''}}" wx:if="{{!feedbackSubmitted}}">
+    <view class="feedback-prompt" wx:if="{{!feedbackExpanded}}" bindtap="onExpandFeedback">
+      <view class="feedback-prompt-left">
+        <text class="feedback-prompt-emoji">✍️</text>
+        <text class="feedback-prompt-text">对测算结果有建议？点击反馈</text>
+      </view>
+      <view class="feedback-prompt-arrow"></view>
+    </view>
+
+    <block wx:if="{{feedbackExpanded}}">
+      <view class="feedback-header">
+        <view class="feedback-title-wrap">
+          <text class="feedback-title-emoji">✍️</text>
+          <text class="feedback-title">意见反馈</text>
+        </view>
+        <view class="feedback-close" bindtap="onCollapseFeedback">收起</view>
+      </view>
+
+      <view class="feedback-body">
+        <!-- 反馈描述 -->
+        <view class="feedback-section">
+          <view class="feedback-label">反馈内容</view>
+          <textarea
+            class="feedback-textarea"
+            placeholder="请描述您的意见或建议，例如成本参数是否贴合实际…"
+            placeholder-style="color: #c0c4cc;"
+            value="{{feedbackContent}}"
+            bindinput="onFeedbackInput"
+            maxlength="500"
+            auto-height
+          />
+          <view class="feedback-count">{{feedbackContent.length || 0}}/500</view>
+        </view>
+
+        <!-- 图片上传 -->
+        <view class="feedback-section">
+          <view class="feedback-label">上传图片（选填）</view>
+          <view class="feedback-image-grid">
+            <view class="feedback-image-item" wx:for="{{feedbackImages}}" wx:key="*this">
+              <image class="feedback-image-thumb" src="{{item}}" mode="aspectFill" bindtap="onPreviewImage" data-src="{{item}}"></image>
+              <view class="feedback-image-remove" catchtap="onRemoveImage" data-index="{{index}}">×</view>
+            </view>
+            <view class="feedback-image-add" wx:if="{{feedbackImages.length < 3}}" bindtap="onChooseImage">
+              <view class="feedback-image-add-icon">+</view>
+              <view class="feedback-image-add-text">添加图片</view>
+            </view>
+          </view>
+          <view class="feedback-hint">最多上传3张</view>
+        </view>
+
+        <!-- 联系方式 -->
+        <view class="feedback-section">
+          <view class="feedback-label">联系方式（选填）</view>
+          <input
+            class="feedback-contact-input"
+            placeholder="手机号或邮箱，方便我们联系您"
+            placeholder-style="color: #c0c4cc;"
+            value="{{feedbackContact}}"
+            bindinput="onContactInput"
+          />
+          <view class="feedback-contact-error" wx:if="{{contactError}}">{{contactError}}</view>
+        </view>
+      </view>
+
+      <!-- 提交按钮 -->
+      <view class="feedback-actions">
+        <button class="feedback-submit-btn" bindtap="onSubmitFeedback" disabled="{{!feedbackContent}}">
+          提交反馈
+        </button>
+      </view>
+    </block>
+  </view>
+
+  <!-- 已提交成功提示 -->
+  <view class="feedback-success" wx:if="{{feedbackSubmitted}}">
+    <view class="feedback-success-icon">✓</view>
+    <text class="feedback-success-text">感谢您的反馈！我们会认真对待每一条建议</text>
+  </view>
+
+  <view class="safe-bottom"></view>
+</view>

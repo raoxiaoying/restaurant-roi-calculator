@@ -1,0 +1,253 @@
+<wxs module="fmt" src="../../utils/fmt.wxs" />
+<view class="container">
+  <!-- 品牌头部区 -->
+  <view class="brand-header">
+    <view class="brand-logo-clip">
+      <image class="brand-banner" src="/assets/images/logo.png" mode="widthFix" />
+    </view>
+  </view>
+
+  <!-- 城市选择 -->
+  <view class="card">
+    <view class="card-title">基本信息</view>
+    
+    <view class="input-item city-input-wrapper">
+      <text class="input-label">城市</text>
+      <input class="input-field" placeholder="请输入城市名称" value="{{city}}" bindinput="onCityInput" bindfocus="onCityFocus" bindblur="onCityBlur" />
+      <!-- 城市建议列表 -->
+      <view class="city-suggestions" wx:if="{{showCitySuggestions && citySuggestions.length > 0}}">
+        <view 
+          class="city-suggestion-item" 
+          wx:for="{{citySuggestions}}" 
+          wx:key="*this"
+          data-city="{{item}}"
+          bindtap="onCitySelect"
+        >
+          {{item}}
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 业态选择 -->
+  <view class="card">
+    <view class="card-title">业态选择</view>
+    <view class="bt-grid">
+      <view
+        class="bt-grid-item {{businessType === item.name ? 'bt-grid-active' : ''}}"
+        wx:for="{{businessTypeList}}"
+        wx:key="name"
+        data-value="{{item.name}}"
+        bindtap="onBusinessTypeGridTap"
+      >
+        <text class="bt-grid-icon">{{item.icon}}</text>
+        <text class="bt-grid-name">{{item.name}}</text>
+      </view>
+    </view>
+    <!-- 选中后展示包含品类 -->
+    <view class="info-tip" wx:if="{{businessTypeInfo}}">
+      <view class="tip-row">
+        <text class="tip-label">包含品类：</text>
+        <text class="tip-value">{{businessTypeInfo.subCategories}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 商圈选择 -->
+  <view class="card">
+    <view class="card-title">商圈等级</view>
+    
+    <view class="radio-group-custom">
+      <view 
+        class="radio-item {{district === item.value ? 'radio-active' : ''}}"
+        wx:for="{{districtList}}"
+        wx:key="value"
+        data-value="{{item.value}}"
+        bindtap="onDistrictSelect"
+      >
+        <view class="radio-dot {{district === item.value ? 'dot-active' : ''}}"></view>
+        <view class="radio-content">
+          <text class="radio-label">{{item.label}}</text>
+          <text class="radio-desc">{{item.desc}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 成本结构（业态+商圈联动，支持手动调整） -->
+  <view class="card" wx:if="{{costStructure}}">
+    <view class="card-title">
+      成本费用结构
+      <text class="card-title-hint" wx:if="{{costAdjusted}}">（已手动调整）</text>
+      <text class="card-title-hint" wx:else>（{{district === 'A' ? 'A级商圈已上调' : district === 'C' ? 'C级商圈已下调' : district === 'D' ? 'D级商圈已下调' : '商圈基准值'}}）</text>
+    </view>
+
+    <view class="cost-reset-row" wx:if="{{costAdjusted}}">
+      <text class="cost-reset-text">已手动调整成本结构</text>
+      <text class="cost-reset-btn" bindtap="resetCosts">恢复默认</text>
+    </view>
+
+    <view class="cost-item" wx:for="{{costItems}}" wx:key="key">
+      <view class="cost-item-header">
+        <view class="cost-item-left">
+          <text class="cost-item-label">{{item.label}}</text>
+          <text class="cost-item-range {{costStructure[item.key] * 100 < costStructure[item.key + 'Min'] || costStructure[item.key] * 100 > costStructure[item.key + 'Max'] ? 'range-warning' : ''}}">参考区间 {{costStructure[item.key + 'Min']}}%～{{costStructure[item.key + 'Max']}}%</text>
+        </view>
+        <view class="cost-item-input-wrap">
+          <input class="cost-item-input" type="digit" value="{{costInputDisplay[item.key]}}" data-key="{{item.key}}" bindinput="onCostInput" bindblur="onCostBlur" />
+          <text class="cost-item-unit">%</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="cost-total-row">
+      <text class="cost-total-label">成本费用合计</text>
+      <text class="cost-total-value {{(costStructure.foodCost + costStructure.laborCost + costStructure.rentCost + costStructure.utilityCost + costStructure.marketingCost + costStructure.suppliesCost + costStructure.otherCost + costStructure.taxCost) >= 1 ? 'cost-total-warning' : ''}}">
+        {{fmt.toFixed1((costStructure.foodCost + costStructure.laborCost + costStructure.rentCost + costStructure.utilityCost + costStructure.marketingCost + costStructure.suppliesCost + costStructure.otherCost + costStructure.taxCost) * 100)}}%
+      </text>
+    </view>
+  </view>
+
+  <!-- 经营模式选择 -->
+  <view class="card">
+    <view class="card-title">经营模式</view>
+    
+    <view class="tag-group">
+      <view 
+        class="tag-item {{operationMode === item ? 'tag-active' : ''}}" 
+        wx:for="{{operationModeList}}" 
+        wx:key="*this"
+        data-value="{{item}}"
+        bindtap="onOperationModeSelect"
+      >
+        {{item}}
+      </view>
+    </view>
+
+    <!-- 加盟模式子选项 -->
+    <view class="sub-options" wx:if="{{operationMode === '加盟'}}">
+      <view class="sub-title">加盟费用模式<text class="sub-title-hint">（共{{franchiseTypeList.length}}种，请选择）</text></view>
+      
+      <view class="option-list">
+        <view 
+          class="option-list-item {{franchiseTypeIndex === index ? 'option-active' : ''}}"
+          wx:for="{{franchiseTypeList}}"
+          wx:key="*this"
+          data-index="{{index}}"
+          bindtap="onFranchiseTypeTap"
+        >
+          <view class="option-check {{franchiseTypeIndex === index ? 'check-active' : ''}}">
+            <text wx:if="{{franchiseTypeIndex === index}}">✓</text>
+          </view>
+          <text class="option-text">{{item}}</text>
+        </view>
+      </view>
+
+      <!-- 加盟动态输入项 -->
+      <view class="dynamic-inputs" wx:if="{{franchiseTypeIndex >= 0}}">
+        <!-- 品牌授权费（除零加盟费外都需要） -->
+        <view class="input-item" wx:if="{{franchiseTypeIndex !== 6}}">
+          <text class="input-label">品牌授权费（万元）</text>
+          <input class="input-field" type="digit" placeholder="请输入品牌授权费" value="{{brandFee}}" bindinput="onBrandFeeInput" />
+        </view>
+
+        <!-- 分摊年数（除零加盟费外都需要，默认3年） -->
+        <view class="input-item" wx:if="{{franchiseTypeIndex !== 6}}">
+          <text class="input-label">授权费分摊年数（年）</text>
+          <input class="input-field" type="digit" placeholder="默认3年" value="{{amortizeYears}}" bindinput="onAmortizeYearsInput" />
+        </view>
+        
+        <!-- 年度品牌管理费 -->
+        <view class="input-item" wx:if="{{franchiseTypeIndex === 1 || franchiseTypeIndex === 4 || franchiseTypeIndex === 5}}">
+          <text class="input-label">年度品牌管理费（万元）</text>
+          <input class="input-field" type="digit" placeholder="请输入年度品牌管理费" value="{{manageFee}}" bindinput="onManageFeeInput" />
+        </view>
+        
+        <!-- 营收抽成比率 -->
+        <view class="input-item" wx:if="{{franchiseTypeIndex === 2 || franchiseTypeIndex === 4}}">
+          <text class="input-label">营收抽成比率（%）</text>
+          <input class="input-field" type="digit" placeholder="请输入营收抽成比率" value="{{revenueRate}}" bindinput="onRevenueRateInput" />
+        </view>
+        
+        <!-- 利润抽成比率 -->
+        <view class="input-item" wx:if="{{franchiseTypeIndex === 3 || franchiseTypeIndex === 5}}">
+          <text class="input-label">利润抽成比率（%）</text>
+          <input class="input-field" type="digit" placeholder="请输入利润抽成比率" value="{{profitRate}}" bindinput="onProfitRateInput" />
+        </view>
+      </view>
+    </view>
+
+    <!-- 联营模式子选项 -->
+    <view class="sub-options" wx:if="{{operationMode === '联营'}}">
+      <view class="sub-title">联营费用模式<text class="sub-title-hint">（共{{jointTypeList.length}}种，请选择）</text></view>
+      
+      <view class="option-list">
+        <view 
+          class="option-list-item {{jointTypeIndex === index ? 'option-active' : ''}}"
+          wx:for="{{jointTypeList}}"
+          wx:key="*this"
+          data-index="{{index}}"
+          bindtap="onJointTypeTap"
+        >
+          <view class="option-check {{jointTypeIndex === index ? 'check-active' : ''}}">
+            <text wx:if="{{jointTypeIndex === index}}">✓</text>
+          </view>
+          <text class="option-text">{{item}}</text>
+        </view>
+      </view>
+
+      <!-- 联营动态输入项 -->
+      <view class="dynamic-inputs" wx:if="{{jointTypeIndex >= 0}}">
+        <!-- 年运营服务费 -->
+        <view class="input-item">
+          <text class="input-label">年运营服务费（万元）</text>
+          <input class="input-field" type="digit" placeholder="请输入年运营服务费" value="{{operationFee}}" bindinput="onOperationFeeInput" />
+        </view>
+        
+        <!-- 营收抽成比率 -->
+        <view class="input-item" wx:if="{{jointTypeIndex === 1}}">
+          <text class="input-label">营收抽成比率（%）</text>
+          <input class="input-field" type="digit" placeholder="请输入营收抽成比率" value="{{jointRevenueRate}}" bindinput="onJointRevenueRateInput" />
+        </view>
+        
+        <!-- 利润抽成比率 -->
+        <view class="input-item" wx:if="{{jointTypeIndex === 2}}">
+          <text class="input-label">利润抽成比率（%）</text>
+          <input class="input-field" type="digit" placeholder="请输入利润抽成比率" value="{{jointProfitRate}}" bindinput="onJointProfitRateInput" />
+        </view>
+      </view>
+    </view>
+
+    <!-- 直营/合伙模式提示 -->
+    <view class="sub-options" wx:if="{{operationMode === '直营' || operationMode === '合伙'}}">
+      <view class="mode-hint">
+        <text class="mode-hint-icon">i</text>
+        <text class="mode-hint-text">{{operationMode === '直营' ? '直营模式：无额外品牌或运营费用' : '合伙模式：无额外品牌或运营费用'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 投资额和营收 -->
+  <view class="card">
+    <view class="card-title">投资与营收</view>
+    
+    <view class="input-item">
+      <text class="input-label">初始投资额（万元）</text>
+      <input class="input-field" type="digit" placeholder="请输入初始投资总额" value="{{initialInvestment}}" bindinput="onInvestmentInput" />
+    </view>
+    
+    <view class="input-item">
+      <text class="input-label">预计月营收（万元）</text>
+      <input class="input-field" type="digit" placeholder="请输入预计月营业收入" value="{{monthlyRevenue}}" bindinput="onRevenueInput" />
+    </view>
+  </view>
+
+  <!-- 计算按钮 -->
+  <view class="btn-wrapper">
+    <button class="btn-primary" bindtap="onCalculate">开始测算</button>
+    <view class="btn-disclaimer">声明：现金利润未考虑所得税，测算结果仅供参考，不构成投资建议，实际经营受多种因素影响。</view>
+  </view>
+
+  <!-- 底部安全区 -->
+  <view class="safe-bottom"></view>
+</view>

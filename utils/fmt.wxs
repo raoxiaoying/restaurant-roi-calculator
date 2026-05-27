@@ -1,0 +1,13 @@
+// WXS 格式化工具，可在 WXML 模板中直接调用
+function toFixed1(val) {
+  return val.toFixed(1)
+}
+
+function toFixed2(val) {
+  return val.toFixed(2)
+}
+
+module.exports = {
+  toFixed1: toFixed1,
+  toFixed2: toFixed2
+}
